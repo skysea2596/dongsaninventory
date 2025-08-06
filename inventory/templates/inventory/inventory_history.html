@@ -1,0 +1,128 @@
+{% extends 'inventory/base.html' %}
+
+{% block title %}입출고 내역{% endblock %}
+
+{% block content %}
+<h2>📊 입출고 내역</h2>
+
+<!-- 🔍 필터 폼 -->
+<form method="get" class="filter-form">
+  <label>구분:
+    <select name="type">
+      <option value="">전체</option>
+      <option value="IN" {% if filter_type == "IN" %}selected{% endif %}>입고</option>
+      <option value="OUT" {% if filter_type == "OUT" %}selected{% endif %}>소모</option>
+    </select>
+  </label>
+
+  <label>사용자:
+    <select name="user">
+      <option value="">전체</option>
+      {% for user in users %}
+      <option value="{{ user.id }}" {% if user.id|stringformat:"s" == selected_user %}selected{% endif %}>{{ user.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>품목 + 규격:
+    <select name="variant">
+      <option value="">전체</option>
+      {% for variant in variants %}
+      <option value="{{ variant.id }}" {% if variant.id|stringformat:"s" == selected_variant %}selected{% endif %}>
+        {{ variant.item.name }} - {{ variant.spec.label }}
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>시작일:
+    <input type="date" name="start_date" value="{{ start_date }}">
+  </label>
+
+  <label>종료일:
+    <input type="date" name="end_date" value="{{ end_date }}">
+  </label>
+
+  <button type="submit">검색</button>
+  <a href="{% url 'inventory_history' %}">초기화</a>
+</form>
+
+<!-- 📥 엑셀 다운로드 -->
+<div style="text-align: right; margin-bottom: 10px;">
+  <form method="get" action="{% url 'export_inventory_log' %}">
+    {% for key, value in request.GET.items %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+    <button type="submit" class="btn btn-success">엑셀 다운로드</button>
+  </form>
+</div>
+
+<!-- 📋 입출고 테이블 -->
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>날짜</th>
+      <th>사용자</th>
+      <th>품목</th>
+      <th>규격</th>
+      <th>수량</th>
+      <th>구분</th>
+      <th>작업</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for log in logs %}
+    <tr>
+      <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+      <td>{{ log.user.name }}</td>
+      <td>{{ log.variant.item.name }}</td>
+      <td>{{ log.variant.spec.label }}</td>
+      <td>{{ log.quantity }}</td>
+      <td>{{ log.get_type_display }}</td>
+      <td>
+        {% if log.type == 'OUT' %}
+        <button type="button" class="btn btn-sm btn-warning" onclick="openCancelModal('{{ log.id }}')">취소</button>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">데이터가 없습니다.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ❌ 소모 취소 모달 -->
+{% include 'inventory/includes/confirm_modal.html' with modal_id='cancelModal' message='정말 해당 소모 기록을 취소하시겠습니까?' form_id='cancelForm' %}
+
+<!-- ⏮ 페이지네이션 -->
+<div style="display: flex; justify-content: center; margin-top: 20px;">
+  {% include 'inventory/includes/table_pagination.html' with page_obj=page_obj %}
+</div>
+
+<script>
+  let currentCancelLogId = null;
+
+  function openCancelModal(logId) {
+    currentCancelLogId = logId;
+    openConfirmModal("소모 기록 취소", "정말 해당 소모 기록을 취소하시겠습니까?", "submitCancelForm");
+  }
+
+  function submitCancelForm() {
+    if (!currentCancelLogId) return;
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = `/history/cancel/${currentCancelLogId}/`;
+
+    const csrfToken = '{{ csrf_token }}';
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "csrfmiddlewaretoken";
+    input.value = csrfToken;
+
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+</script>
+{% endblock %}

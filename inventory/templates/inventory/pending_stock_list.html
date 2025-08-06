@@ -1,0 +1,143 @@
+{% extends 'inventory/base.html' %}
+{% block title %}입고 대기{% endblock %}
+
+{% block content %}
+<div class="header-bar">
+  <h2>🕒 입고 대기 목록</h2>
+  <a href="{% url 'paste_table_upload' %}" class="btn-register">입고대기 등록</a>
+</div>
+
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>날짜</th>
+      <th>거래처</th>
+      <th>상태</th>
+      <th>작업</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><th colspan="4" class="section-header">⏳ 대기 중</th></tr>
+    {% for batch in pending_batches %}
+    <tr>
+      <td>{{ batch.formatted_date }}</td>
+      <td>{{ batch.supplier }}</td>
+      <td>대기중</td>
+      <td><button type="button" onclick="showBatchModal('{{ batch.id }}', true)" class="btn btn-sm">보기</button></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">대기 중 입고건이 없습니다.</td></tr>
+    {% endfor %}
+
+    <tr><th colspan="4" class="section-header">✅ 완료된 입고</th></tr>
+    {% for batch in done_batches %}
+    <tr>
+      <td>{{ batch.formatted_date }}</td>
+      <td>{{ batch.supplier }}</td>
+      <td>완료</td>
+      <td><button type="button" onclick="showBatchModal('{{ batch.id }}', false)" class="btn btn-sm">보기</button></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">완료된 입고건이 없습니다.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ✅ 입고 대기 상세 모델 -->
+<div id="batchModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:20px 30px; border-radius:10px; width:400px; position:relative;">
+    <button onclick="closeBatchModal()" style="position:absolute; top:10px; right:10px;">✖</button>
+    <h3 id="batchModalTitle">입고 항목</h3>
+    <ul id="batchItemList" style="margin-top:15px; line-height: 1.8;"></ul>
+    <div style="margin-top: 20px; text-align: right;">
+      <button id="processButton" class="btn btn-danger" style="display:none;" onclick="processBatch()">입고 처리</button>
+      <button id="cancelButton" class="btn btn-outline-danger" style="display:none;" onclick="cancelBatch()">입고 취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentBatchId = null;
+  let currentIsPending = false;
+  let currentPendingItems = [];
+
+  function showBatchModal(batchId, isPending) {
+    currentBatchId = parseInt(batchId);
+    currentIsPending = isPending;
+
+    fetch(`/pending_stock/${batchId}/items/`)
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("batchModalTitle").innerText = `📜 ${data.supplier} 입고 항목`;
+        const list = document.getElementById("batchItemList");
+        list.innerHTML = '';
+        currentPendingItems = data.items;
+
+        data.items.forEach(item => {
+          const li = document.createElement("li");
+          li.dataset.itemId = item.id;
+          li.innerHTML = `
+            <span>${item.item}</span> -
+            ${isPending ? `<input type="number" value="${item.quantity}" min="1" style="width:60px;"> 개` : `${item.quantity}개`}
+          `;
+          list.appendChild(li);
+        });
+
+        document.getElementById("processButton").style.display = isPending ? 'inline-block' : 'none';
+        document.getElementById("cancelButton").style.display = isPending ? 'inline-block' : 'none';
+
+        document.getElementById("batchModal").style.display = 'flex';
+      });
+  }
+
+  function closeBatchModal() {
+    document.getElementById("batchModal").style.display = 'none';
+    currentBatchId = null;
+    currentPendingItems = [];
+  }
+
+  function cancelBatch() {
+    if (!currentBatchId) return;
+    if (!confirm("정말 이 입고 대기 건을 취소하시겠습니까?")) return;
+
+    fetch(`/pending_stock/${currentBatchId}/cancel/`, {
+      method: "POST",
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message);
+      if (data.success) location.reload();
+    });
+  }
+
+  function processBatch() {
+    if (!currentBatchId) return;
+    if (!confirm("입고 처리하시겠습니까?")) return;
+
+    const updates = [];
+    document.querySelectorAll("#batchItemList li").forEach(li => {
+      const id = parseInt(li.dataset.itemId);
+      const input = li.querySelector('input[type="number"]');
+      if (input) {
+        const qty = parseInt(input.value);
+        if (qty > 0) updates.push({ id: id, qty: qty });
+      }
+    });
+
+    fetch(`/pending_stock/${currentBatchId}/process/`, {
+      method: "POST",
+      headers: {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantities: updates })
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message);
+      if (data.success) location.reload();
+    });
+  }
+</script>
+{% endblock %}

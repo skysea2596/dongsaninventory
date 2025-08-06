@@ -1,0 +1,6 @@
+<div class="category-buttons">
+  <button onclick="filterByCategory('all')">전체</button>
+  {% for cat in categories %}
+    <button onclick="filterByCategory('{{ cat.id }}')">{{ cat.name }}</button>
+  {% endfor %}
+</div>

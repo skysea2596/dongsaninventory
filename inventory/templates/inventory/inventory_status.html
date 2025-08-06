@@ -1,0 +1,64 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}재고 현황{% endblock %}
+
+{% block content %}
+<h2>📦 재고 현황</h2>
+
+<!-- 🔍 필터 영역 -->
+<form method="get" class="filter-form" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 20px;">
+  <label>
+    검색:
+    <input type="text" name="q" placeholder="품목명, 설명, 규격" value="{{ request.GET.q|default_if_none:'' }}">
+  </label>
+
+  <button type="submit">검색</button>
+
+  <label>
+    사용처:
+    <select name="category" onchange="this.form.submit()">
+      <option value="">전체</option>
+      {% for category in categories %}
+      <option value="{{ category.id }}" {% if category.id|stringformat:"s" == selected_category %}selected{% endif %}>{{ category.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label>
+    <input type="checkbox" name="low_stock" value="1" {% if show_low_stock %}checked{% endif %} onchange="this.form.submit()">
+    🚨 안전재고 이하만 보기
+  </label>
+</form>
+
+<!-- 📋 재고 테이블 -->
+<table class="styled-table">
+  <thead>
+    <tr>
+      <th>품목</th>
+      <th>규격</th>
+      <th>현재 재고</th>
+      <th>안전 재고</th>
+      <th>상태</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for variant in variants %}
+    <tr>
+      <td>{{ variant.item.name }}</td>
+      <td>{{ variant.spec.label }}</td>
+      <td>{{ variant.current_quantity }}</td>
+      <td>{{ variant.min_quantity }}</td>
+      <td>
+        {% if variant.current_quantity < variant.min_quantity %}
+        <span class="status-low">부족</span>
+        {% else %}
+        <span class="status-ok">정상</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">재고 정보가 없습니다.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

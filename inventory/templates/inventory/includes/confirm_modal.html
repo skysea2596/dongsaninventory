@@ -1,0 +1,42 @@
+{# inventory/includes/confirm_modal.html #}
+
+<!-- ✅ 확인 모달 (재사용 가능) -->
+<div id="confirmModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:24px 32px; border-radius:8px; max-width:400px; text-align:center; position:relative;">
+    <button type="button" onclick="closeConfirmModal()" style="position:absolute; top:10px; right:12px;">✖</button>
+    <h3 id="confirmModalTitle">{{ modal_title|default:"확인" }}</h3>
+    <p id="confirmModalMessage">{{ modal_message|default:"정말 진행하시겠습니까?" }}</p>
+    <div style="margin-top:20px;">
+      <button onclick="handleConfirmAction()" class="btn btn-danger">확인</button>
+      <button type="button" onclick="closeConfirmModal()" class="btn btn-outline-secondary">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ✅ 함수 실행 핸들러
+  function handleConfirmAction() {
+    const fnName = window._confirmFnName || "{{ confirm_function|default:'submitForm' }}";
+    const fn = window[fnName];
+    if (typeof fn === "function") {
+      fn();
+      closeConfirmModal();
+    } else {
+      console.error(`⚠️ '${fnName}' is not defined or not a function.`);
+    }
+  }
+
+  // ✅ 모달 열기 함수 (동적 메시지 변경 가능)
+  function openConfirmModal(title = "{{ modal_title|default:'확인' }}", message = "{{ modal_message|default:'정말 진행하시겠습니까?' }}", fn = "{{ confirm_function|default:'submitForm' }}") {
+    document.getElementById("confirmModalTitle").innerText = title;
+    document.getElementById("confirmModalMessage").innerText = message;
+    window._confirmFnName = fn;
+    document.getElementById("confirmModal").style.display = "flex";
+  }
+
+  // ✅ 모달 닫기
+  function closeConfirmModal() {
+    document.getElementById("confirmModal").style.display = "none";
+  }
+</script>

@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  web:
+    build: .
+    container_name: inventory_django
+    command: python manage.py runserver 0.0.0.0:8000
+    tty: true             # ← 이 줄 추가
+    stdin_open: true      # ← 이 줄도 추가
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True

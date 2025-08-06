@@ -1,0 +1,27 @@
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page=1{{ request.GET.urlencode|cut:'page='|yesno:',&' }}">⏮</a>
+    <a href="?page={{ page_obj.previous_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:',&' }}">◀</a>
+  {% else %}
+    <span class="disabled">⏮</span>
+    <span class="disabled">◀</span>
+  {% endif %}
+
+  {% for num in page_obj.paginator.page_range %}
+    {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+      {% if num == page_obj.number %}
+        <span class="current">{{ num }}</span>
+      {% else %}
+        <a href="?page={{ num }}{{ request.GET.urlencode|cut:'page='|yesno:',&' }}">{{ num }}</a>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{{ request.GET.urlencode|cut:'page='|yesno:',&' }}">▶</a>
+    <a href="?page={{ page_obj.paginator.num_pages }}{{ request.GET.urlencode|cut:'page='|yesno:',&' }}">⏭</a>
+  {% else %}
+    <span class="disabled">▶</span>
+    <span class="disabled">⏭</span>
+  {% endif %}
+</div>

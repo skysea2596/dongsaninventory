@@ -1,0 +1,290 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 40px;
+    background-color: #f9f9f9;
+}
+
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #004080;
+    padding: 10px 20px;
+    margin-bottom: 30px;
+    border-radius: 6px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    font-weight: bold;
+}
+
+nav a:last-child {
+    margin-right: 0;
+}
+
+nav a:hover {
+    text-decoration: underline;
+}
+
+nav button {
+    background-color: #ffffff;
+    color: #004080;
+    padding: 6px 14px;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+nav button:hover {
+    background-color: #e0e0e0;
+}
+
+h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+th,
+td {
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: center;
+}
+
+th {
+    background-color: #eee;
+}
+
+.messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.messages li {
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+}
+
+.messages li.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.messages li.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.category-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.category-buttons a {
+    padding: 8px 14px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    background-color: #f9f9f9;
+}
+
+.category-buttons a.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.category-buttons a.low-stock {
+    color: red;
+}
+
+.status-low {
+    color: red;
+    font-weight: bold;
+}
+
+.status-ok {
+    color: green;
+}
+
+.variant-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: flex-start;
+    margin-top: 20px;
+}
+
+.variant-card {
+    flex: 0 0 calc(20% - 16px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    background: white;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s ease;
+    position: relative;
+}
+
+.variant-card:hover {
+    background-color: #f5f5f5;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-register {
+  padding: 8px 14px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-register:hover {
+  text-decoration: none;
+}
+
+.variant-image {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 8px;
+}
+
+.variant-title {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.variant-sub {
+    font-size: 13px;
+    color: #555;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.pagination a,
+.pagination span {
+    margin: 0 6px;
+    text-decoration: none;
+    color: #333;
+    font-weight: normal;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.pagination a:hover {
+    background-color: #f0f0f0;
+}
+
+.pagination .current {
+    font-weight: bold;
+    background-color: #eee;
+    pointer-events: none;
+}
+
+.pagination .disabled {
+    color: #aaa;
+    pointer-events: none;
+}
+
+#addItemModal input,
+#addItemModal select {
+    width: 100%;
+    padding: 6px;
+    margin: 5px 0 10px;
+}
+
+#addItemModal h3 {
+    margin-top: 0;
+}
+
+/* ✅ 모달 전체 배경 (공통) */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* ✅ 모달 안 컨텐츠 */
+.modal-content {
+    background: white;
+    padding: 24px 32px;
+    border-radius: 10px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+/* ✅ 모달 닫기 버튼 */
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* ✅ 모달 버튼 영역 */
+.modal-buttons,
+.modal-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.favorite-icon {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.favorite-icon.favorited {
+  color: #f39c12;
+}

@@ -1,0 +1,210 @@
+{% extends 'inventory/base.html' %}
+{% load static %}
+{% block title %}입고 추가{% endblock %}
+
+{% block content %}
+<style>
+  .page-container {
+    display: flex;
+    gap: 30px;
+  }
+  .main-content {
+    flex: 1;
+  }
+  .sidebar-form {
+    width: 300px;
+    position: sticky;
+    top: 80px;
+    background: #f8f9fa;
+    border-left: 1px solid #ccc;
+    padding: 20px;
+    height: fit-content;
+    border-radius: 8px;
+  }
+</style>
+
+<div class="page-container">
+  <div class="main-content">
+    <input type="text" id="item-search" placeholder="🔍 품목 검색" style="width: 100%; padding: 8px; margin-bottom: 10px;" onkeyup="filterItems()">
+
+    <!-- 🔹 카테고리 필터 -->
+    {% include 'inventory/includes/category_filter.html' with categories=categories %}
+
+    <!-- 🔹 품목 목록 -->
+    <div class="variant-grid" id="item-grid">
+      {% for item in items %}
+      <div class="variant-card"
+          data-item-id="{{ item.id }}"
+          data-name="{{ item.name }}"
+          data-description="{{ item.description|default_if_none:''|escapejs }}"
+          data-category="{{ item.category.id }}"
+          onclick="openSpecModal('{{ item.id }}', '{{ item.name }}')">
+        <span class="favorite-icon" onclick="toggleFavorite(event, '{{ item.id }}')">☆</span>
+        <img src="{% static 'images/sample.png' %}" class="variant-image" alt="품목 이미지">
+        <div class="variant-title">{{ item.name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 🔹 우측 고정: 선택 항목 + 입고 폼 -->
+  <div class="sidebar-form">
+    <h4 style="margin-top: 0;">📦 선택한 품목</h4>
+    <form id="stockForm">
+      {% csrf_token %}
+      <label for="user">사용자:</label>
+      <select name="user" id="user" required style="width: 100%; margin-bottom: 10px;">
+        <option value="">사용자 선택</option>
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {% endfor %}
+      </select>
+
+      <div id="selected-items" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;"></div>
+
+      <button type="button"
+              onclick="openConfirmModal('입고 확인', '정말 입고 처리하시겠습니까?', 'submitStockForm')"
+              class="btn btn-primary" style="margin-top: 20px; width: 100%;">
+        📦 입고 처리
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ 규격 선택 모달 -->
+<div id="specModal"
+  style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; padding:20px 30px; border-radius:10px; width:400px; position:relative;">
+    <button onclick="closeSpecModal()" style="position:absolute; top:10px; right:10px;">✖</button>
+    <h3 id="specModalTitle">규격 선택</h3>
+    <p id="specDescription" style="margin-top:8px; font-size:13px; color:#666; white-space:pre-wrap;"></p>
+    <div id="specList" style="margin-top:15px; display:flex; flex-direction:column; gap:10px;"></div>
+  </div>
+</div>
+
+{% include 'inventory/includes/confirm_modal.html' with modal_title='입고 확인' modal_message='정말 입고 처리하시겠습니까?' confirm_function='submitStockForm' %}
+
+<script>
+  const selectedItems = {};
+  const variantMap = JSON.parse('{{ variant_json|escapejs }}');
+
+  function closeSpecModal() {
+    document.getElementById("specModal").style.display = 'none';
+  }
+
+  function openSpecModal(itemId, itemName) {
+    const specList = document.getElementById("specList");
+    specList.innerHTML = '';
+    const variants = variantMap[itemId] || [];
+
+    const itemCard = document.querySelector(`.variant-card[data-item-id="${itemId}"]`);
+    const itemDescription = itemCard?.dataset.description || "설명이 없습니다.";
+
+    variants.forEach(v => {
+      const btn = document.createElement("button");
+      btn.innerText = v.spec_label;
+      btn.style.padding = '6px';
+      btn.onclick = () => {
+        selectVariant(v.id, `${itemName} - ${v.spec_label}`);
+        closeSpecModal();
+      };
+      specList.appendChild(btn);
+    });
+
+    document.getElementById("specModalTitle").innerText = `${itemName} - 규격 선택`;
+    document.getElementById("specDescription").innerText = itemDescription;
+    document.getElementById("specModal").style.display = 'flex';
+  }
+
+  function selectVariant(id, label) {
+    if (selectedItems[id]) {
+      const row = document.querySelector(`.variant-selected-row[data-id="${id}"]`);
+      const qtyInput = row.querySelector('input[name="quantities"]');
+      qtyInput.value = parseInt(qtyInput.value) + 1;
+      return;
+    }
+
+    selectedItems[id] = true;
+    const container = document.getElementById("selected-items");
+    const row = document.createElement("div");
+    row.className = "variant-selected-row";
+    row.dataset.id = id;
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "10px";
+
+    row.innerHTML = `
+      <input type="hidden" name="variant_ids" value="${id}">
+      <span style="flex: 1;">${label}</span>
+      <input type="number" name="quantities" min="1" value="1" style="width: 60px;">
+      <button type="button" onclick="removeVariant('${id}', this)" style="border: none; background: none; color: red; font-size: 18px;">&times;</button>
+    `;
+
+    container.appendChild(row);
+  }
+
+  function removeVariant(id, btn) {
+    delete selectedItems[id];
+    btn.closest('.variant-selected-row').remove();
+  }
+
+  function submitStockForm() {
+    const userId = document.getElementById("user").value;
+    const selected = document.querySelectorAll(".variant-selected-row");
+    const variantData = [];
+
+    selected.forEach(row => {
+      const id = row.dataset.id;
+      const qty = row.querySelector('input[name="quantities"]').value;
+      variantData.push({ id: id, qty: qty });
+    });
+
+    fetch("/add_stock_ajax/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: JSON.stringify({
+        user: userId,
+        variants: variantData
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        alert(data.message);
+        document.getElementById("selected-items").innerHTML = '';
+      } else {
+        alert(data.message);
+      }
+    })
+    .catch(err => {
+      alert("❌ 서버 오류가 발생했습니다.");
+    });
+  }
+
+  function filterItems() {
+    const keyword = document.getElementById("item-search").value.toLowerCase();
+    const cards = document.querySelectorAll(".variant-card");
+    cards.forEach(card => {
+      const name = card.dataset.name?.toLowerCase() || '';
+      const desc = card.dataset.description?.toLowerCase() || '';
+      const match = name.includes(keyword) || desc.includes(keyword);
+      card.style.display = match ? "block" : "none";
+    });
+  }
+
+  function filterByCategory(categoryId) {
+    const cards = document.querySelectorAll(".variant-card");
+    cards.forEach(card => {
+      const itemCategory = card.getAttribute("data-category");
+      if (categoryId === 'all' || itemCategory === categoryId) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>
+{% endblock %}

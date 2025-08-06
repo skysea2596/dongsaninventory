@@ -1,0 +1,63 @@
+{% extends 'inventory/base.html' %}
+{% block title %}입고 대기 등록 (붙여넣기 테이블){% endblock %}
+
+{% block content %}
+<h2>📋 입고 대기 등록 - 엑셀 테이블 붙여넣기</h2>
+<p>표를 붙여넣은 후 확인 없이 등록할 경우, 오류가 발생할 수 있습니다. 붙여넣은 내용이 정확한지 꼭 확인하세요.</p>
+
+<!-- Handsontable 스타일과 라이브러리 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/handsontable@13.0.0/dist/handsontable.full.min.js"></script>
+
+<!-- ✅ placeholder 스타일 -->
+<style>
+  .htPlaceholder {
+    color: #aaa !important;
+    font-style: italic;
+  }
+</style>
+
+<form id="pasteForm" method="POST">
+  {% csrf_token %}
+  <div id="hot" style="margin-top: 20px; width: 100%; max-width: 1000px;"></div>
+  <input type="hidden" name="json_data" id="json_data">
+  <br>
+  <button type="submit" class="btn btn-primary">✅ 입고 대기 등록</button>
+</form>
+
+<script>
+  function placeholderRenderer(instance, td, row, col, prop, value, cellProperties) {
+    const placeholderTexts = ["2025-06-20", "거래처명", "현수막", "80폭", "5"];
+    Handsontable.renderers.TextRenderer.apply(this, arguments);
+    if (row === 0 && !value) {
+      td.innerText = placeholderTexts[col];
+      td.classList.add('htPlaceholder');
+    } else {
+      td.classList.remove('htPlaceholder');
+    }
+  }
+
+  const container = document.getElementById('hot');
+  const hot = new Handsontable(container, {
+    data: [],
+    colHeaders: ["입고날짜", "거래처명", "품목명", "규격", "수량"],
+    columns: [
+      { type: 'text', renderer: placeholderRenderer },
+      { type: 'text', renderer: placeholderRenderer },
+      { type: 'text', renderer: placeholderRenderer },
+      { type: 'text', renderer: placeholderRenderer },
+      { type: 'numeric', renderer: placeholderRenderer },
+    ],
+    rowHeaders: true,
+    minRows: 10,
+    stretchH: 'all',
+    contextMenu: true,
+    licenseKey: 'non-commercial-and-evaluation'
+  });
+
+  document.getElementById('pasteForm').addEventListener('submit', function (e) {
+    const data = hot.getData().filter(row => row.some(cell => cell !== null && cell !== ''));
+    document.getElementById('json_data').value = JSON.stringify(data);
+  });
+</script>
+{% endblock %}
