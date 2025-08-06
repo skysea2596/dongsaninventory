@@ -1,4 +1,4 @@
 -i https://mirror.kakao.com/pypi/simple
 Django>=4.2,<5.0
 pandas
-openpyxl
+openpyxlex
