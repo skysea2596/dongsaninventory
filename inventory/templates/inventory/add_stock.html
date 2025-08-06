@@ -8,9 +8,11 @@
     display: flex;
     gap: 30px;
   }
+
   .main-content {
     flex: 1;
   }
+
   .sidebar-form {
     width: 300px;
     position: sticky;
@@ -25,26 +27,14 @@
 
 <div class="page-container">
   <div class="main-content">
-    <input type="text" id="item-search" placeholder="🔍 품목 검색" style="width: 100%; padding: 8px; margin-bottom: 10px;" onkeyup="filterItems()">
+    <input type="text" id="item-search" placeholder="🔍 품목 검색" style="width: 100%; padding: 8px; margin-bottom: 10px;"
+      onkeyup="filterItems()">
 
     <!-- 🔹 카테고리 필터 -->
     {% include 'inventory/includes/category_filter.html' with categories=categories %}
 
     <!-- 🔹 품목 목록 -->
-    <div class="variant-grid" id="item-grid">
-      {% for item in items %}
-      <div class="variant-card"
-          data-item-id="{{ item.id }}"
-          data-name="{{ item.name }}"
-          data-description="{{ item.description|default_if_none:''|escapejs }}"
-          data-category="{{ item.category.id }}"
-          onclick="openSpecModal('{{ item.id }}', '{{ item.name }}')">
-        <span class="favorite-icon" onclick="toggleFavorite(event, '{{ item.id }}')">☆</span>
-        <img src="{% static 'images/sample.png' %}" class="variant-image" alt="품목 이미지">
-        <div class="variant-title">{{ item.name }}</div>
-      </div>
-      {% endfor %}
-    </div>
+    {% include 'inventory/includes/variant_grid.html' %}
   </div>
 
   <!-- 🔹 우측 고정: 선택 항목 + 입고 폼 -->
@@ -62,9 +52,8 @@
 
       <div id="selected-items" style="margin-top: 10px; display: flex; flex-direction: column; gap: 10px;"></div>
 
-      <button type="button"
-              onclick="openConfirmModal('입고 확인', '정말 입고 처리하시겠습니까?', 'submitStockForm')"
-              class="btn btn-primary" style="margin-top: 20px; width: 100%;">
+      <button type="button" onclick="openConfirmModal('입고 확인', '정말 입고 처리하시겠습니까?', 'submitStockForm')"
+        class="btn btn-primary" style="margin-top: 20px; width: 100%;">
         📦 입고 처리
       </button>
     </form>
@@ -90,30 +79,6 @@
 
   function closeSpecModal() {
     document.getElementById("specModal").style.display = 'none';
-  }
-
-  function openSpecModal(itemId, itemName) {
-    const specList = document.getElementById("specList");
-    specList.innerHTML = '';
-    const variants = variantMap[itemId] || [];
-
-    const itemCard = document.querySelector(`.variant-card[data-item-id="${itemId}"]`);
-    const itemDescription = itemCard?.dataset.description || "설명이 없습니다.";
-
-    variants.forEach(v => {
-      const btn = document.createElement("button");
-      btn.innerText = v.spec_label;
-      btn.style.padding = '6px';
-      btn.onclick = () => {
-        selectVariant(v.id, `${itemName} - ${v.spec_label}`);
-        closeSpecModal();
-      };
-      specList.appendChild(btn);
-    });
-
-    document.getElementById("specModalTitle").innerText = `${itemName} - 규격 선택`;
-    document.getElementById("specDescription").innerText = itemDescription;
-    document.getElementById("specModal").style.display = 'flex';
   }
 
   function selectVariant(id, label) {
@@ -170,18 +135,18 @@
         variants: variantData
       })
     })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        alert(data.message);
-        document.getElementById("selected-items").innerHTML = '';
-      } else {
-        alert(data.message);
-      }
-    })
-    .catch(err => {
-      alert("❌ 서버 오류가 발생했습니다.");
-    });
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          document.getElementById("selected-items").innerHTML = '';
+        } else {
+          alert(data.message);
+        }
+      })
+      .catch(err => {
+        alert("❌ 서버 오류가 발생했습니다.");
+      });
   }
 
   function filterItems() {

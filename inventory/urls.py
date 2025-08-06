@@ -1,12 +1,12 @@
 from django.urls import path
-from inventory.views.kiosk import kiosk_input, kiosk_input_ajax
-from inventory.views.stock import add_stock, inventory_status, inventory_history, add_stock_ajax
-from inventory.views.pending import (
+from inventory.views import kiosk_input, kiosk_input_ajax
+from inventory.views import add_stock, inventory_status, inventory_history, add_stock_ajax
+from inventory.views import (
     paste_table_upload, pending_stock_list, get_batch_items,
     process_pending_stock, update_pending_quantities, cancel_pending_stock
 )
-from inventory.views.api import get_variants_by_item, add_item_ajax, cancel_out_log
-from inventory.views.export import export_inventory_log
+from inventory.views import get_variants_by_item, add_item_ajax, cancel_out_log
+from inventory.views import export_inventory_log
 
 urlpatterns = [
     path('', kiosk_input, name='kiosk_input'),

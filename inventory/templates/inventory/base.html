@@ -107,29 +107,25 @@
     function openSpecModal(itemId, itemName) {
       const specList = document.getElementById("specList");
       specList.innerHTML = '';
-      const variants = variantMap[itemId] || [];
+      const variants = variantMap[String(itemId)] || [];
 
-      // 설명 가져오기 (카드의 data-description 속성에서 가져오기)
       const itemCard = document.querySelector(`.variant-card[data-item-id="${itemId}"]`);
       const itemDescription = itemCard?.dataset.description || "";
 
-      // 규격 버튼 생성
       variants.forEach(v => {
-        const btn = document.createElement("button");
-        btn.innerText = v.spec_label;
-        btn.style.padding = '6px';
-        btn.onclick = () => {
-          selectVariant(v.id, `${itemName} - ${v.spec_label}`);
-          closeSpecModal();
-        };
-        specList.appendChild(btn);
-      });
+      const btn = document.createElement("button");
+      // ★ 재고 표기 추가!
+      btn.innerHTML = `${v.spec_label} <span style="color:#666;font-size:12px;">(${v.stock ?? 0}개)</span>`;
+      btn.style.padding = '6px';
+      btn.onclick = () => {
+        selectVariant(v.id, `${itemName} - ${v.spec_label}`);
+        closeSpecModal();
+    };
+      specList.appendChild(btn);
+    });
 
-      // 제목 및 설명 표시
       document.getElementById("specModalTitle").innerText = `${itemName} - 규격 선택`;
       document.getElementById("specDescription").innerText = itemDescription;
-
-      // 모달 열기
       document.getElementById("specModal").style.display = 'flex';
     }
 

@@ -7,12 +7,13 @@ def extract_number(label):
 def build_variant_map(variants):
     variant_map = {}
     for variant in variants:
-        item_id = variant.item.id
+        item_id = str(variant.item.id)
         if item_id not in variant_map:
             variant_map[item_id] = []
         variant_map[item_id].append({
             'id': variant.id,
             'spec_label': variant.spec.label,
+            'stock': variant.current_quantity,
             'sort_key': extract_number(variant.spec.label)
         })
     for v_list in variant_map.values():
