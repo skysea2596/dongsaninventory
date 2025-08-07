@@ -6,7 +6,7 @@ from inventory.views import (
     process_pending_stock, update_pending_quantities, cancel_pending_stock
 )
 from inventory.views import get_variants_by_item, add_item_ajax, cancel_out_log
-from inventory.views import export_inventory_log
+from inventory.views import export_inventory_log, usage_stat_view, export_usage_stat_excel
 
 urlpatterns = [
     path('', kiosk_input, name='kiosk_input'),
@@ -28,4 +28,6 @@ urlpatterns = [
     # 기타
     path('history/cancel/<int:log_id>/', cancel_out_log, name='cancel_out_log'),
     path('kiosk_input_ajax/', kiosk_input_ajax, name='kiosk_input_ajax'),
+    path('usage_stat/', usage_stat_view, name='usage_stat'),
+    path('usage_stat/export/', export_usage_stat_excel, name='export_usage_stat_excel'),
 ]

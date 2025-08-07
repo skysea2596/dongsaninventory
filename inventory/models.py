@@ -45,6 +45,7 @@ class ProductVariant(models.Model):
 
     current_quantity = models.PositiveIntegerField("현재 재고", default=0)
     min_quantity = models.PositiveIntegerField("안전 재고", default=0, help_text="재고 부족 경고 기준 수량")
+    unit_price = models.PositiveIntegerField("단가", default=0, help_text="이 품목+규격의 단가(원)")
 
     def __str__(self):
         return f"{self.item.name} [{self.spec.label}]"

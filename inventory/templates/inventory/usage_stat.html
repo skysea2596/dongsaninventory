@@ -1,0 +1,55 @@
+{% extends 'inventory/base.html' %}
+{% load humanize %}
+{% block title %}품목별 소모 통계{% endblock %}
+{% block content %}
+<h2>📊 품목별 소모(출고) 통계</h2>
+
+<form method="get" class="filter-form" style="margin-bottom:16px;">
+  <div style="display:flex; gap:24px; align-items:end;">
+    <div>{{ form.start_date.label_tag }} {{ form.start_date }}</div>
+    <div>{{ form.end_date.label_tag }} {{ form.end_date }}</div>
+    <div>{{ form.user.label_tag }} {{ form.user }}</div>
+    <div>{{ form.variant.label_tag }} {{ form.variant }}</div>
+    <div style="margin-left:auto; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">검색</button>
+      <form method="get" action="{% url 'export_usage_stat_excel' %}" style="display:inline;">
+        {% for key, value in request.GET.items %}
+          <input type="hidden" name="{{ key }}" value="{{ value }}">
+        {% endfor %}
+        <button type="submit" class="btn btn-success">엑셀 다운로드</button>
+      </form>
+    </div>
+  </div>
+</form>
+
+{% if stats %}
+  <table class="styled-table">
+    <thead>
+      <tr>
+        <th>품목</th>
+        <th>규격</th>
+        <th>단가</th>
+        <th>사용수량</th>
+        <th>금액</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in stats %}
+      <tr>
+        <td>{{ row.variant__item__name }}</td>
+        <td>{{ row.variant__spec__label }}</td>
+        <td>{{ row.variant__unit_price|intcomma }}원</td>
+        <td>{{ row.total_quantity|intcomma }}</td>
+        <td>{{ row.amount|intcomma }}원</td>
+      </tr>
+      {% endfor %}
+      <tr>
+        <th colspan="4" style="text-align:right;">총합</th>
+        <th>{{ total_amount|intcomma }}원</th>
+      </tr>
+    </tbody>
+  </table>
+{% else %}
+  <p>검색 결과가 없습니다.</p>
+{% endif %}
+{% endblock %}

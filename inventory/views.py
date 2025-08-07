@@ -4,12 +4,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum, ExpressionWrapper, IntegerField
 from django.utils.dateparse import parse_date
 from django.utils.timezone import localtime, now
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
+from .forms import UsageStatForm
 
 import json
 import pandas as pd
@@ -478,3 +479,92 @@ def cancel_pending_stock(request, batch_id):
     batch.status = 'CANCELED'
     batch.save()
     return response_success('❌ 입고 대기 건이 취소되었습니다.')
+
+def usage_stat_view(request):
+    # 사용자, 품목+규격 목록 (폼 드롭다운용)
+    user_choices = [(str(u.id), u.name) for u in InventoryUser.objects.exclude(name="system")]
+    variant_choices = [(str(v.id), f"{v.item.name} - {v.spec.label}") for v in ProductVariant.objects.select_related('item', 'spec')]
+
+    form = UsageStatForm(request.GET or None, user_choices=user_choices, variant_choices=variant_choices)
+
+    stats = []
+    total_amount = 0
+
+    if form.is_valid():
+        start = form.cleaned_data.get('start_date')
+        end = form.cleaned_data.get('end_date')
+        user_id = form.cleaned_data.get('user')
+        variant_id = form.cleaned_data.get('variant')
+
+        qs = InventoryLog.objects.filter(type='OUT')
+        if start:
+            qs = qs.filter(timestamp__date__gte=start)
+        if end:
+            qs = qs.filter(timestamp__date__lte=end)
+        if user_id:
+            qs = qs.filter(user_id=user_id)
+        if variant_id:
+            qs = qs.filter(variant_id=variant_id)
+
+        stats_qs = (
+            qs.values('variant', 'variant__item__name', 'variant__spec__label', 'variant__unit_price')
+            .annotate(
+                total_quantity=Sum('quantity'),
+                amount=ExpressionWrapper(
+                    F('variant__unit_price') * Sum('quantity'),
+                    output_field=IntegerField()
+                ),
+            )
+            .order_by('-amount')
+        )
+        stats = list(stats_qs)
+        total_amount = sum(row['amount'] for row in stats)
+        
+    return render(request, 'inventory/usage_stat.html', {
+        'form': form,
+        'stats': stats,
+        'total_amount': total_amount,
+    })
+    
+def export_usage_stat_excel(request):
+    # 기존 통계 쿼리와 동일하게 필터 적용
+    start = request.GET.get('start_date')
+    end = request.GET.get('end_date')
+    user_id = request.GET.get('user')
+    variant_id = request.GET.get('variant')
+
+    qs = InventoryLog.objects.filter(type='OUT')
+    if start:
+        qs = qs.filter(timestamp__date__gte=start)
+    if end:
+        qs = qs.filter(timestamp__date__lte=end)
+    if user_id:
+        qs = qs.filter(user_id=user_id)
+    if variant_id:
+        qs = qs.filter(variant_id=variant_id)
+
+    stats = qs.values(
+        'variant__item__name',
+        'variant__spec__label',
+        'variant__unit_price',
+    ).annotate(
+        total_quantity=Sum('quantity'),
+        amount=ExpressionWrapper(
+            F('variant__unit_price') * Sum('quantity'),
+            output_field=IntegerField()
+        ),
+    ).order_by('-amount')
+
+    # 집계 데이터를 pandas DataFrame으로 변환
+    data = [
+        {
+            '품목': row['variant__item__name'],
+            '규격': row['variant__spec__label'],
+            '단가': row['variant__unit_price'],
+            '사용수량': row['total_quantity'],
+            '금액': row['amount'],
+        }
+        for row in stats
+    ]
+    df = pd.DataFrame(data)
+    return dataframe_to_excel_response(df, "품목별소모통계_다운로드.xlsx")
