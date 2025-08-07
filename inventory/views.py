@@ -392,6 +392,27 @@ def pending_stock_list(request):
         'pending_batches': pending_batches,
         'done_batches': done_batches,
     })
+    
+def pending_stock_items(request, batch_id):
+    try:
+        batch = PendingStockBatch.objects.get(id=batch_id)
+    except PendingStockBatch.DoesNotExist:
+        return JsonResponse({"error": "입고 대기건을 찾을 수 없습니다."}, status=404)
+
+    items = PendingStockItem.objects.filter(batch=batch)
+    data = {
+        "supplier": batch.supplier,
+        "items": [
+            {
+                "id": item.id,
+                "item": item.item.name,
+                "spec_label": item.spec.label,
+                "quantity": item.quantity,
+            }
+            for item in items
+        ]
+    }
+    return JsonResponse(data)
 
 def get_batch_items(request, batch_id):
     batch = get_object_or_404(PendingStockBatch, id=batch_id)

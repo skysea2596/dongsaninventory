@@ -78,36 +78,6 @@
     document.getElementById("specModal").style.display = 'none';
   }
 
-  function openSpecModal(itemId, itemName) {
-    alert("openSpecModal 호출됨!");
-    const specList = document.getElementById("specList");
-    specList.innerHTML = '';
-    const variants = variantMap[String(itemId)] || [];
-
-    const itemCard = document.querySelector(`.variant-card[data-item-id="${itemId}"]`);
-    const itemDescription = itemCard?.dataset.description || "설명이 없습니다.";
-    console.log('itemId:', itemId, typeof itemId);
-    console.log('variantMap:', variantMap);
-    console.log('openSpecModal variants:', variants);
-    variants.forEach(v => {
-      console.log(`variant[${idx}]:`, v);
-      const btn = document.createElement("button");
-      btn.innerHTML = `${v.spec_label} ${variant.stock ?? 0}</span>`;
-      btn.style.padding = '6px';
-      btn.onclick = () => {
-        selectVariant(v.id, `${itemName} - ${v.spec_label}`);
-        closeSpecModal();
-      };
-      specList.appendChild(btn);
-    });
-
-    document.getElementById("specModalTitle").innerText = `${itemName} - 규격 선택`;
-    document.getElementById("specDescription").innerText = itemDescription;
-    document.getElementById("specModal").style.display = 'flex';
-  }
-
-  
-
   function selectVariant(id, label) {
     if (selectedItems[id]) {
       const row = document.querySelector(`.variant-selected-row[data-id="${id}"]`);

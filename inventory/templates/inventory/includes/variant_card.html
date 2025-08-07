@@ -1,0 +1,11 @@
+{# inventory/includes/variant_card.html #}
+<div class="variant-card"
+    data-item-id="{{ item.id }}"
+    data-name="{{ item.name }}"
+    data-category="{{ item.category.id }}"
+    data-description="{{ item.description|default_if_none:''|escapejs }}"
+    onclick="openSpecModal('{{ item.id }}', '{{ item.name }}')">
+  <span class="favorite-icon" onclick="toggleFavorite(event, '{{ item.id }}')">☆</span>
+  <img src="{% static 'images/sample.png' %}" class="variant-image" alt="품목 이미지">
+  <div class="variant-title">{{ item.name }}</div>
+</div>

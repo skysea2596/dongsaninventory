@@ -3,7 +3,7 @@ from inventory.views import kiosk_input, kiosk_input_ajax
 from inventory.views import add_stock, inventory_status, inventory_history, add_stock_ajax
 from inventory.views import (
     paste_table_upload, pending_stock_list, get_batch_items,
-    process_pending_stock, update_pending_quantities, cancel_pending_stock
+    process_pending_stock, update_pending_quantities, cancel_pending_stock, pending_stock_items
 )
 from inventory.views import get_variants_by_item, add_item_ajax, cancel_out_log
 from inventory.views import export_inventory_log, usage_stat_view, export_usage_stat_excel
@@ -24,6 +24,7 @@ urlpatterns = [
     path('pending_stock/<int:batch_id>/process/', process_pending_stock, name='process_pending_stock'),
     path('pending_stock/update_quantities/', update_pending_quantities, name='update_pending_quantities'),
     path('pending_stock/<int:batch_id>/cancel/', cancel_pending_stock, name='cancel_pending_stock'),
+    path('pending_stock/<int:batch_id>/items/', pending_stock_items, name='pending_stock_items'),
 
     # 기타
     path('history/cancel/<int:log_id>/', cancel_out_log, name='cancel_out_log'),
