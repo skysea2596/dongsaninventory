@@ -145,29 +145,56 @@ def parse_grouped_rows(rows):
     """
     from collections import defaultdict
     from django.utils.dateparse import parse_date
+
+    def _norm_supplier(v):
+        v = (v or "").strip()
+        return v if v else "미지정"
+
+    def _to_int_clean(v):
+        s = str(v).replace(',', '').strip()
+        return int(s)
+
+    def _normalize_date_str(ds):
+        ds = (ds or "").strip()
+        if len(ds) == 8 and ds.isdigit():  # YYYYMMDD → YYYY-MM-DD
+            return f"{ds[:4]}-{ds[4:6]}-{ds[6:]}"
+        return ds
+
     grouped = defaultdict(list)
     error_lines = []
+
     for idx, row in enumerate(rows, start=1):
-        if not any(row):
+        if not row or not any(row):
             continue
+
         if len(row) != 5:
             error_lines.append(f"{idx}행: 열 개수 오류")
             continue
-        date_str, supplier, item_name, spec_label, qty_str = row
-        if not (date_str and supplier and item_name and spec_label and qty_str):
+
+        date_str, supplier, item_name, spec_label, qty_raw = row
+
+        date_str = _normalize_date_str(date_str)
+        supplier_norm = _norm_supplier(supplier)
+        item_name = (item_name or "").strip()
+        spec_label = (spec_label or "").strip()
+
+        if not (date_str and item_name and spec_label and (qty_raw is not None and str(qty_raw).strip() != "")):
             error_lines.append(f"{idx}행: 누락된 값이 있음")
             continue
+
         try:
-            quantity = int(qty_str)
-            if quantity <= 0:
-                error_lines.append(f"{idx}행: 수량이 1 미만")
-                continue
             date = parse_date(date_str)
             if not date:
                 error_lines.append(f"{idx}행: 날짜 형식 오류")
                 continue
-        except:
+            quantity = _to_int_clean(qty_raw)
+            if quantity <= 0:
+                error_lines.append(f"{idx}행: 수량이 1 미만")
+                continue
+        except Exception:
             error_lines.append(f"{idx}행: 수량 또는 날짜 파싱 오류")
             continue
-        grouped[(date, supplier)].append((item_name, spec_label, quantity, idx))
+
+        grouped[(date, supplier_norm)].append((item_name, spec_label, quantity, idx))
+
     return grouped, error_lines

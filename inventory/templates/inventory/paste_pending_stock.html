@@ -59,5 +59,29 @@
     const data = hot.getData().filter(row => row.some(cell => cell !== null && cell !== ''));
     document.getElementById('json_data').value = JSON.stringify(data);
   });
+
+  document.getElementById('pasteForm').addEventListener('submit', function (e) {
+    const raw = hot.getData();
+    const cleaned = [];
+
+    for (let r = 0; r < raw.length; r++) {
+      const row = raw[r] || [];
+      // 모든 셀 비어있으면 스킵
+      if (!row.some(c => c !== null && String(c).trim() !== '')) continue;
+
+      const date = (row[0] ?? '').trim();
+      const supplier = (row[1] ?? '').trim();          // 서버에서 공백은 "미지정" 처리
+      const item = (row[2] ?? '').trim();
+      const spec = (row[3] ?? '').trim();
+      const qtyRaw = (row[4] ?? '').toString().trim();
+
+      // 수량 숫자화(빈값/NaN이면 그대로 두고 서버에서 에러 메시지 처리)
+      const qty = qtyRaw === '' ? '' : Number(qtyRaw);
+
+      cleaned.push([date, supplier, item, spec, qty]);
+    }
+
+    document.getElementById('json_data').value = JSON.stringify(cleaned);
+  });
 </script>
 {% endblock %}

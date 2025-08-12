@@ -333,8 +333,11 @@ def add_stock_ajax(request):
 
     return response_success("✅ 입고 처리가 완료되었습니다.")
 
-
 # === pending (입고 대기) ===
+def _normalize_supplier(value: str) -> str:
+    v = (value or "").strip()
+    return v if v else "미지정"
+
 def paste_table_upload(request):
     if request.method == 'POST':
         json_data = request.POST.get('json_data', '')
@@ -344,35 +347,87 @@ def paste_table_upload(request):
             messages.error(request, "❌ 잘못된 데이터 형식입니다.")
             return redirect('paste_table_upload')
 
+        # 기존 유틸 그대로 사용: (date, supplier) -> [ (item_name, spec_label, quantity, idx), ... ]
         grouped, error_lines = parse_grouped_rows(rows)
-        for (date, supplier), items in grouped.items():
+
+        # ===== 1) 검증을 위한 일괄 수집 & 사전화 =====
+        # 모든 그룹에서 필요한 item_name/spec_label 수집
+        item_names = set()
+        spec_labels = set()
+        for (_date, _supplier), items in grouped.items():
+            for (item_name, spec_label, _qty, _idx) in items:
+                item_names.add((item_name or "").strip())
+                spec_labels.add((spec_label or "").strip())
+
+        # 일괄 조회
+        items_by_name = {i.name.strip(): i for i in Item.objects.filter(name__in=item_names)}
+        specs_by_label = {s.label.strip(): s for s in Spec.objects.filter(label__in=spec_labels)}
+
+        # 필요한 (item_id, spec_id) 조합 만들기
+        needed_pairs = set()
+        for (_date, _supplier), items in grouped.items():
+            for (item_name, spec_label, _qty, _idx) in items:
+                i = items_by_name.get((item_name or "").strip())
+                s = specs_by_label.get((spec_label or "").strip())
+                if i and s:
+                    needed_pairs.add((i.id, s.id))
+
+        # 존재하는 Variant 조합 조회
+        existing_pairs = set(
+            ProductVariant.objects.filter(
+                item_id__in=[i for i, _ in needed_pairs],
+                spec_id__in=[s for _, s in needed_pairs]
+            ).values_list('item_id', 'spec_id')
+        )
+
+        # 검증(기존 에러 메시지 스타일 유지)
+        for (_date, _supplier), items in grouped.items():
             for (item_name, spec_label, quantity, idx) in items:
-                try:
-                    item = Item.objects.get(name=item_name.strip())
-                except Item.DoesNotExist:
+                item_obj = items_by_name.get((item_name or "").strip())
+                if not item_obj:
                     error_lines.append(f"{idx}행: 품목명 '{item_name}' 존재하지 않음")
                     continue
-                try:
-                    spec = Spec.objects.get(label=spec_label.strip())
-                except Spec.DoesNotExist:
+                spec_obj = specs_by_label.get((spec_label or "").strip())
+                if not spec_obj:
                     error_lines.append(f"{idx}행: 규격 '{spec_label}' 존재하지 않음")
                     continue
-                try:
-                    ProductVariant.objects.get(item=item, spec=spec)
-                except ProductVariant.DoesNotExist:
+                if (item_obj.id, spec_obj.id) not in existing_pairs:
                     error_lines.append(f"{idx}행: 품목 '{item_name}'에 규격 '{spec_label}' 연결 안 됨")
                     continue
+                # 수량 기본 검증(0/음수 방지)
+                try:
+                    if int(quantity) <= 0:
+                        error_lines.append(f"{idx}행: 수량은 1 이상이어야 합니다.")
+                except Exception:
+                    error_lines.append(f"{idx}행: 수량이 유효한 숫자가 아닙니다.")
+
         if error_lines:
             messages.error(request, "입고 대기 등록 실패.\n" + "\n".join(error_lines))
             return redirect('paste_table_upload')
 
-        # 정상 데이터 batch로 저장
-        for (date, supplier), items in grouped.items():
-            batch = PendingStockBatch.objects.create(supplier=supplier, uploaded_at=date)
-            for (item_name, spec_label, quantity, idx) in items:
-                item = Item.objects.get(name=item_name.strip())
-                spec = Spec.objects.get(label=spec_label.strip())
-                PendingStockItem.objects.create(batch=batch, item=item, spec=spec, quantity=quantity)
+        # ===== 2) 저장 (거래처별 Batch 분리, 기존 동작 유지) =====
+        with transaction.atomic():
+            for (date, supplier), items in grouped.items():
+                supplier_norm = _normalize_supplier(supplier)
+                batch = PendingStockBatch.objects.create(
+                    supplier=supplier_norm,
+                    uploaded_at=date,  # 기존 로직 유지(수동 지정)
+                    status='PENDING',
+                )
+
+                # PendingStockItem bulk 생성
+                psi_rows = []
+                for (item_name, spec_label, quantity, _idx) in items:
+                    item_obj = items_by_name[item_name.strip()]
+                    spec_obj = specs_by_label[spec_label.strip()]
+                    psi_rows.append(PendingStockItem(
+                        batch=batch,
+                        item=item_obj,
+                        spec=spec_obj,
+                        quantity=int(quantity)
+                    ))
+                if psi_rows:
+                    PendingStockItem.objects.bulk_create(psi_rows, batch_size=1000)
 
         messages.success(request, "✅ 입고 대기 등록이 완료되었습니다.")
         return redirect('pending_stock_list')

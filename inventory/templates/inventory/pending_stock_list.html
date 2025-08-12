@@ -22,7 +22,7 @@
     </tr>
     {% for batch in pending_batches %}
     <tr>
-      <td>{{ batch.formatted_date }}</td>
+      <td>{{ batch.uploaded_at|date:"Y-m-d" }}</td>
       <td>{{ batch.supplier }}</td>
       <td>대기중</td>
       <td><button type="button" onclick="showBatchModal('{{ batch.id }}', true)" class="btn btn-sm">보기</button></td>

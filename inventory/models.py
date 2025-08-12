@@ -107,14 +107,18 @@ class InventoryLog(models.Model):
 # 🔹 입고 대기 건
 class PendingStockBatch(models.Model):
     supplier = models.CharField("거래처", max_length=100)
-    uploaded_at = models.DateTimeField("등록일", auto_now_add=True)
+    uploaded_at = models.DateTimeField("입고 예정일")  
     status = models.CharField("상태", max_length=10, choices=[('PENDING', '대기'), ('DONE', '완료'), ('CANCELED', '취소')], default='PENDING')
     processed_by = models.ForeignKey(InventoryUser, verbose_name="처리자", null=True, blank=True, on_delete=models.SET_NULL)
     processed_at = models.DateTimeField("처리일시", null=True, blank=True)
 
     def __str__(self):
         return f"{self.uploaded_at.strftime('%Y-%m-%d')} - {self.supplier} 입고건"
-
+    
+    def formatted_date(self):
+        """리스트 표시용 날짜 — 등록일을 YYYY-MM-DD 포맷으로"""
+        return self.uploaded_at.strftime("%Y-%m-%d") if self.uploaded_at else ""
+    
     class Meta:
         ordering = ['-uploaded_at']
         verbose_name = "입고 대기건"
